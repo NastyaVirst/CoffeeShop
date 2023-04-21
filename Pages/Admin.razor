@@ -1,0 +1,142 @@
+﻿@page "/admin/{Topic}"
+@inject ICoinInfo _dbCoin
+@inject ICoffeeInfo _dbCoffee
+
+<h3>Admin</h3>
+@if (Access)
+{
+    <div>
+        <h2>Монеты</h2>
+        <button class="btn btn-primary m-1" @onclick="AddCoin">Добавить</button>
+        @if (coinsList.Count > 0)
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col"> <DisplayName For="@(() => coinsList[0].Name)" /></th>
+                        <th scope="col"> <DisplayName For="@(() => coinsList[0].Value)" /></th>
+                        <th scope="col"> <DisplayName For="@(() => coinsList[0].Count)" /></th>
+                        <th scope="col"> <DisplayName For="@(() => coinsList[0].Active)" /></th>
+                        <th scope="col"> </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in coinsList)
+                    {
+                        <tr>
+                            <td>  <input class="form-control" @bind-value="@c.Name" /> </td>
+                            <td>  <input type="number" class="form-control" @bind-value="@c.Value" /> </td>
+                            <td>  <input type="number" class="form-control" @bind-value="@c.Count" /> </td>
+                            <td>
+                                @if (c.Active)
+                                {
+                                    <input type="checkbox" checked class="form-check" @onchange="()=>{c.Active=!c.Active;}" />
+                                }
+                                else
+                                {
+                                    <input type="checkbox" class="form-check" @onchange="()=>{c.Active=!c.Active;}" />
+                                }
+                            </td>
+                            <td><button class="btn btn-danger" @onclick="()=>Remove(c)">X</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        <button class="btn btn-success m-1" @onclick="SaveCoin">Сохранить</button>
+    </div>
+
+    <div>
+        <h2>Напитки</h2>  
+        <a class="btn btn-primary m-1" href="/Add/@Topic">Добавить</a>
+        @if (coffeeList.Count > 0)
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col"> <DisplayName For="@(() => coffeeList[0].Name)" /></th>
+                        <th scope="col"> <DisplayName For="@(() => coffeeList[0].Price)" /></th>
+                        <th scope="col"> <DisplayName For="@(() => coffeeList[0].Count)" /></th>
+                        <th scope="col"> <DisplayName For="@(() => coffeeList[0].Description)" /></th>
+                        <th scope="col"> </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in coffeeList)
+                    {
+                        <tr>
+                            <td>  <input class="form-control" @bind-value="@c.Name" /> </td>
+                            <td>  <input type="number" class="form-control" @bind-value="@c.Price" /> </td>
+                            <td>  <input type="number" class="form-control" @bind-value="@c.Count" /> </td>
+                            <td>  <input class="form-control" @bind-value="@c.Description" /> </td>
+                            <td> <button class="btn btn-danger" @onclick="()=>Remove(c)">X</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        <button class="btn btn-success m-1" @onclick="SaveCoffee">Сохранить</button>
+    </div>
+}
+else
+{
+    <h3>Доступ закрыт</h3>
+}
+
+@code {
+    [Parameter] public string Topic { get; set; }
+
+    bool Access { get; set; }
+    List<Coin> coinsList { get; set; }
+    List<Coffee> coffeeList { get; set; }
+    List<int> coinsToRemove = new List<int>();
+    List<int> coffeeToRemove = new List<int>();
+
+    protected override void OnInitialized()
+    {
+        Access = Topic == Environment.GetEnvironmentVariable("ADMIN_TOPIC");
+        coinsList = _dbCoin.GetCoins().ToList();
+        coffeeList = _dbCoffee.GetCoffeeList().ToList();
+    }
+
+    protected void SaveCoin()
+    {
+        foreach (var c in coinsList)
+        {
+            if (c.Id == 0)
+                _dbCoin.AddCoin(c);
+            else
+                _dbCoin.SetCoin(c);
+        }
+
+        foreach (var n in coinsToRemove)
+            _dbCoin.DelCoin(n);
+    }
+
+    protected void SaveCoffee()
+    {
+        foreach (var c in coffeeList)
+            _dbCoffee.SetCoffee(c);
+
+        foreach (var n in coffeeToRemove)
+            _dbCoffee.DelCoffee(n);
+    }
+
+    protected void AddCoin()
+    {
+        coinsList.Add(new Coin());
+    }
+
+    protected void Remove(Coin c)
+    {
+        coinsToRemove.Add(c.Id);
+        coinsList.Remove(c);
+    }
+    protected void Remove(Coffee c)
+    {
+        coffeeToRemove.Add(c.Id);
+        coffeeList.Remove(c);
+    }
+}
+
+

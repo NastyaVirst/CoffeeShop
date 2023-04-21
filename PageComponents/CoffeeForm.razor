@@ -1,0 +1,77 @@
+﻿@using System.IO
+@using Tewr.Blazor.FileReader;
+@inject IFileReaderService _fileReader
+
+<EditForm Model="Coffee" OnValidSubmit="ValidSubmit">
+    <div class="form-group">
+        <label> <DisplayName For="@(() => Coffee.Name)" /> </label>
+        <div>
+            <InputText class="form-control" @bind-Value="Coffee.Name" />
+            <ValidationMessage For="@(() => Coffee.Name)"></ValidationMessage>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label> <DisplayName For="@(() => Coffee.Img)" /> </label>
+        <div class="custom-file">
+            <input type="file" class="custom-file-input" id="inputGroupFileField" aria-describedby="inputGroupFile"
+               @ref="inputElement" @onchange="OnImageHandlerSelectedHandler" accept=".jpg,.jpeg,.png" />           
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label> <DisplayName For="@(() => Coffee.Price)" /> </label>
+        <div>
+            <InputNumber class="form-control" @bind-Value="Coffee.Price" />
+            <ValidationMessage For="@(() => Coffee.Price)"></ValidationMessage>
+        </div>
+    </div>
+    <div class="form-group">
+        <label> <DisplayName For="@(() => Coffee.Count)" /> </label>
+        <div>
+            <InputNumber class="form-control" @bind-Value="Coffee.Count" />
+            <ValidationMessage For="@(() => Coffee.Count)"></ValidationMessage>
+        </div>
+    </div>
+    <div class="form-group">
+        <label> <DisplayName For="@(() => Coffee.Description)" /> </label>
+        <div>
+            <InputTextArea rows="10" class="form-control" @bind-Value="Coffee.Description" />
+            <ValidationMessage For="@(() => Coffee.Description)"></ValidationMessage>
+        </div>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Сохранить</button>
+
+</EditForm>
+
+@code {
+    [Parameter] public Coffee Coffee { get; set; }
+    [Parameter] public Action<byte[], string> OnValidSubmit { get; set; }
+
+    void ValidSubmit()
+    {
+        OnValidSubmit?.Invoke(byteImage, fileName);
+    }
+
+    ElementReference inputElement;
+    byte[] byteImage=null;
+    string fileName = "Choose file...";
+
+    async Task OnImageHandlerSelectedHandler()
+    {
+        foreach (var item in await _fileReader.CreateReference(inputElement).EnumerateFilesAsync())
+        {
+            using (MemoryStream ms = await item.CreateMemoryStreamAsync(4 * 1024))
+            {
+                var fileInfo = await item.ReadFileInfoAsync();
+                fileName = fileInfo.Name;
+
+                byteImage = new byte[ms.Length];
+                ms.Read(byteImage, 0, (int)ms.Length);
+              
+                StateHasChanged();
+            }
+        }
+    }
+}

@@ -1,0 +1,45 @@
+﻿@page "/Add/{Topic}"
+
+@inject NavigationManager NavigationManager
+@inject IWebHostEnvironment _hostEnvironment
+@inject ICoffeeInfo _dbCoffee
+
+<div class="row">
+    <div class="col">
+        <h1 class="text-info">Добавить кофе</h1>
+    </div>
+</div>
+<div class="row">
+    <div class="col-8">
+        <CoffeeForm Coffee="Coffee" OnValidSubmit="Add" />
+    </div>
+    <div class="col">
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Topic { get; set; }
+
+    bool Access { get; set; }
+
+    Coffee Coffee = new Coffee();
+    protected override void OnInitialized()
+    {
+        var access = Topic == Environment.GetEnvironmentVariable("ADMIN_TOPIC");
+        if (!access)
+            NavigationManager.NavigateTo("/");
+    }
+
+    void Add(byte[] bb, string fn)
+    {
+        if ((bb?.Length??0) > 0)
+        {
+            fn = Path.GetRandomFileName() + Path.GetExtension(fn);
+            Coffee.Img = fn;
+            string path = Path.Combine(_hostEnvironment.WebRootPath, "coffeeimg", fn);
+            File.WriteAllBytes(path, bb);
+        }
+        _dbCoffee.AddCoffee(Coffee);
+        NavigationManager.NavigateTo($"/admin/{Topic}");
+    }
+}

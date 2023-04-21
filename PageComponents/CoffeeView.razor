@@ -1,0 +1,19 @@
+﻿<div style="width: 180px" class="border border-success p-2">
+    <img class="w-75" src="/coffeeimg/@Coffee.Img" />
+    <h3>@Coffee.Name</h3>
+    <h4>@Coffee.Price</h4>
+    <p><i>@Coffee.Description</i></p>
+
+    <button class="btn @(Coffee.Count>0?"btn-success":"btn-secondary disabled") w-50 m-1" @onclick="Buy">Купить</button>
+
+</div>
+
+@code {
+    [Parameter] public Coffee Coffee { get; set; }
+    [Parameter] public Action<Coffee> OnBuyHandler { get; set; }
+
+    protected void Buy()
+    {
+        OnBuyHandler?.Invoke(Coffee);
+    }
+}

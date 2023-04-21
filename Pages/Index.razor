@@ -1,0 +1,90 @@
+﻿@page "/"
+@inject ICoinInfo _dbCoin
+@inject ICoffeeInfo _dbCoffee
+
+<PageTitle>Coffee Machine</PageTitle>
+
+<div class="container">
+    <div class="row">
+        <div class="col-3">
+            <h3 class ="text-info">Монетоприёмник</h3>
+            <div class="m-1">
+                @foreach (var c in Coins)
+                {
+                    <button class="btn @(c.Active?"btn-primary":"btn-secondary disabled") w-50 m-1" @onclick="()=>IncrementCount(c)">@c.Name</button>
+                }
+            </div>
+            <h2 >Загружено @(totalMoney) руб.</h2>
+            <button class="btn btn-warning w-50 m-1" @onclick="GetChange">Получить сдачу</button>
+        </div>
+        <div class="col-3">
+            <h3 class="text-info">Инфо</h3>
+            <div>
+                <ul>
+                    @foreach (var s in messages)
+                    {
+                        <li class="@s.Class">@((MarkupString)s.Text)</li>
+                    }
+                </ul>
+            </div>
+        </div>
+        <div class="col-6">
+            <h3 class="text-info">Напитки</h3>
+            <div class="d-flex flex-wrap">
+                @foreach (var c in Coffees)
+                {
+                    <CoffeeView Coffee="c" OnBuyHandler="BuyCoffee" />
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    record Message(string Class, string Text);
+    IEnumerable<Coin> Coins;
+    IEnumerable<Coffee> Coffees;
+    List<Message> messages;
+    float totalMoney = 0;
+
+    protected override void OnInitialized()
+    {
+        Coins = _dbCoin.GetCoins();
+        Coffees = _dbCoffee.GetCoffeeList();
+        messages = new List<Message>();
+    }
+
+    protected void IncrementCount(Coin c)
+    {
+        _dbCoin.AddCoins(c.Id, 1);
+        totalMoney += c.Value;
+    }
+
+    protected void BuyCoffee(Coffee c)
+    {
+        if (c.Price > totalMoney)
+        {
+            AddMessage("text-danger", $"Недостаточно денег для покупки <b>{c.Name}</b>.");
+            return;
+        }
+        totalMoney -= c.Price;
+        c.Count = _dbCoffee.ChangeCoffeeCount(c.Id, -1);
+        AddMessage("text-info", $"Приобретено <b>{c.Name}</b>.");
+    }
+
+    protected void GetChange()
+    {
+        var ch = _dbCoin.GetChange(totalMoney);
+        totalMoney = 0;
+        AddMessage("text-info", $"Ваша сдача: {ch.CoinContsText()}.");
+        if (ch.Balance > 0)
+            AddMessage("text-warning", $"В аппарате нет монет, что бы вернуть еще {ch.Balance} руб. мы зачислим их вам на баланс мобильного телефона.");
+        StateHasChanged();
+    }
+
+    void AddMessage(string cls, string txt)
+    {
+        messages.Add(new Message(cls, txt));
+        StateHasChanged();
+    }
+}
